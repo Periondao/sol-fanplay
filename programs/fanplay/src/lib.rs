@@ -16,9 +16,6 @@ pub mod fanplay {
     pool_account.pool_total = 0;
     pool_account.pick_count = 0;
 
-    let rent = Rent::get()?;
-    pool_account.min_rent = rent.minimum_balance(340); // Space declared on CreatePool - space = 340
-
     Ok(())
   }
 
@@ -81,14 +78,7 @@ pub mod fanplay {
 
     let payouts_and_rake = total_payout + rake;
 
-    // Calculate pool's withdrawable amount
-    let data_len = pool_account.picks.len();
-    let rent_balance = Rent::get()?.minimum_balance(data_len);
-
-    let pool_lamports = **pool_account.to_account_info().try_borrow_mut_lamports()?;
-    let withdrawable = pool_lamports - rent_balance;
-
-    if payouts_and_rake > withdrawable {
+    if payouts_and_rake > pool_account.pool_total {
       return Err(ProgramError::InsufficientFunds);
     }
 
@@ -145,7 +135,6 @@ pub struct PoolAccount {
   pub pool_total: u64, // 8 bytes
   pub pick_count: u32, // 4 bytes
   pub admin_key: Pubkey, // 32 bytes
-  pub min_rent: u64, // 8 bytes
   pub picks: Vec<UserPick>, // 8 bytes + size of vector (lets max at 10 bets, 10 * 28 = 280 bytes)
 }
 // Total size = 4 + 4 + 8 + 4 + 32 + 8 + 280 = 340 bytes

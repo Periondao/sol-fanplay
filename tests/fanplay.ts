@@ -86,20 +86,15 @@ describe("Fanplay program on Solana", () => {
     updatedPool = await program.account.poolAccount.fetch(poolAccount.publicKey)
     console.log('\nupdated pool', updatedPool)
 
-    const { minRent, poolTotal } = updatedPool
+    const { poolTotal } = updatedPool
 
     const picksTotal = poolTotal.toNumber() / LAMPORTS_PER_SOL
     console.log('\nTotal picks amount', picksTotal)
-    console.log('Min rent', minRent.toNumber() / LAMPORTS_PER_SOL)
 
-    let poolBalance = await provider.connection.getBalance(poolAccount.publicKey)
-    console.log('pool balance', poolBalance / LAMPORTS_PER_SOL)
+    const rake = poolTotal.mul(new anchor.BN(10)).div(new anchor.BN(100))
+    const payoutAmount = poolTotal.sub(rake)
 
-    const withdrawable = new anchor.BN(poolBalance).sub(minRent)
-    const rake = withdrawable.mul(new anchor.BN(10)).div(new anchor.BN(100))
-    const payoutAmount = withdrawable.sub(rake)
-
-    console.log('\nWithdrawable', withdrawable.toNumber() / LAMPORTS_PER_SOL)
+    console.log('\nWithdrawable', poolTotal.toNumber() / LAMPORTS_PER_SOL)
     console.log('Rake', rake.toNumber() / LAMPORTS_PER_SOL)
     console.log('Payout', payoutAmount.toNumber() / LAMPORTS_PER_SOL)
 
@@ -120,7 +115,7 @@ describe("Fanplay program on Solana", () => {
 
     // console.log("\n\nPayout txn signature", tx4)
 
-    poolBalance = await provider.connection.getBalance(poolAccount.publicKey)
+    const poolBalance = await provider.connection.getBalance(poolAccount.publicKey)
     console.log('\npool balance', poolBalance / LAMPORTS_PER_SOL)
 
     const newUserBalance = await provider.connection.getBalance(newUser.publicKey)
