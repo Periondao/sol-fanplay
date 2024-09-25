@@ -41,10 +41,6 @@ describe("Fanplay program on Solana", () => {
     const confirmation = await provider.connection.confirmTransaction(sig)
     console.log('\nairdrop confirmation to new user', confirmation)
 
-    // Fetch new balance for the new user
-    const balance = await provider.connection.getBalance(newUser.publicKey)
-    console.log('new user balance', balance)
-
     const amount = new anchor.BN(1 * LAMPORTS_PER_SOL)
     const tx2 = await program.methods.placePick('w:RedDragon', amount)
       .accounts({
@@ -55,9 +51,74 @@ describe("Fanplay program on Solana", () => {
       .signers([newUser])
       .rpc()
 
-    console.log("\n\nPick placed, txn signature", tx2)
+    console.log("\n\nUser 1 Pick placed, txn signature", tx2)
 
-    const updatedPool = await program.account.poolAccount.fetch(poolAccount.publicKey)
+    // Fetch new balance for the new user
+    const balance = await provider.connection.getBalance(newUser.publicKey)
+    console.log('user 1 balance after pick', balance)
+
+    let updatedPool = await program.account.poolAccount.fetch(poolAccount.publicKey)
+    // console.log('\nupdated pool', updatedPool)
+
+    const newUser2 = anchor.web3.Keypair.generate()
+
+    // Airdrop some SOL to the new user
+    const sig2 = await provider.connection.requestAirdrop(newUser2.publicKey, 50 * LAMPORTS_PER_SOL)
+    const confirmation2 = await provider.connection.confirmTransaction(sig2)
+    // console.log('\nairdrop confirmation to new user 2', confirmation2)
+  
+    // Fetch new balance for the new user
+    const balance2 = await provider.connection.getBalance(newUser.publicKey)
+    console.log('\nuser 2 balance after pick', balance2)
+
+    const amount2 = new anchor.BN(1 * LAMPORTS_PER_SOL)
+    const tx3 = await program.methods.placePick('w:BluePhoenix', amount2)
+      .accounts({
+        systemProgram: anchor.web3.SystemProgram.programId,
+        poolAccount: poolAccount.publicKey,
+        user: newUser2.publicKey,
+      } as any)
+      .signers([newUser2])
+      .rpc()
+
+    // console.log("\n\nPick placed user 2, txn signature", tx3)
+
+    updatedPool = await program.account.poolAccount.fetch(poolAccount.publicKey)
     console.log('\nupdated pool', updatedPool)
+
+    const { poolTotal } = updatedPool
+
+    const picksTotal = poolTotal.toNumber() / LAMPORTS_PER_SOL
+    console.log('\nTotal picks amount', picksTotal)
+
+    const rake = poolTotal.mul(new anchor.BN(10)).div(new anchor.BN(100))
+    const payoutAmount = poolTotal.sub(rake)
+
+    console.log('\nWithdrawable', poolTotal.toNumber() / LAMPORTS_PER_SOL)
+    console.log('Rake', rake.toNumber() / LAMPORTS_PER_SOL)
+    console.log('Payout', payoutAmount.toNumber() / LAMPORTS_PER_SOL)
+
+    const payoutList = [
+      { userKey: newUser.publicKey, amount: payoutAmount },
+    ]
+
+    const tx4 = await program.methods.payout(rake, payoutList)
+      .accounts({
+        systemProgram: anchor.web3.SystemProgram.programId,
+        poolAccount: poolAccount.publicKey,
+        user: provider.wallet.publicKey,
+      } as any)
+      .remainingAccounts([
+        { pubkey: newUser.publicKey, isSigner: false, isWritable: true },
+      ])
+      .rpc()
+
+    // console.log("\n\nPayout txn signature", tx4)
+
+    const poolBalance = await provider.connection.getBalance(poolAccount.publicKey)
+    console.log('\npool balance', poolBalance / LAMPORTS_PER_SOL)
+
+    const newUserBalance = await provider.connection.getBalance(newUser.publicKey)
+    console.log('final user 1 balance', newUserBalance / LAMPORTS_PER_SOL)
   })
 })
