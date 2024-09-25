@@ -1,6 +1,5 @@
 import * as anchor from "@coral-xyz/anchor"
 import { Program } from "@coral-xyz/anchor"
-import * as BufferLayout from "buffer-layout"
 
 import { Fanplay } from "../target/types/fanplay"
 
