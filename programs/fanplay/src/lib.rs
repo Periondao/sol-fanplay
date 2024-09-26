@@ -108,7 +108,7 @@ pub mod fanplay {
 
 #[derive(Accounts)]
 pub struct CreatePool<'info> {
-  #[account(init, payer = user, space = 340)]
+  #[account(init, payer = user, space = 524)]
   pub pool_account: Account<'info, PoolAccount>,
 
   #[account(mut)]
@@ -124,7 +124,7 @@ pub struct UserPick {
   // In SOL
   pub amount: u64, // 8 bytes
 }
-// Total size = 16 + 4 + 8 = 28 bytes
+// Total size = 32 + 4 + 8 = 44 bytes
 
 #[account]
 pub struct PoolAccount {
@@ -135,9 +135,9 @@ pub struct PoolAccount {
   pub pool_total: u64, // 8 bytes
   pub pick_count: u32, // 4 bytes
   pub admin_key: Pubkey, // 32 bytes
-  pub picks: Vec<UserPick>, // 8 bytes + size of vector (lets max at 10 bets, 10 * 28 = 280 bytes)
+  pub picks: Vec<UserPick>, // 8 bytes + size of vector (lets max at 10 bets, 10 * 44 = 440 bytes)
 }
-// Total size = 4 + 4 + 8 + 4 + 32 + 8 + 280 = 340 bytes
+// Total size = 4 + 32 + 4 + 8 + 4 + 32 + 440 = 524 bytes
 
 // QUESTION: how much does it cost to store a pool_account for one month?
 // would it be wise to save a replica of the pool_account on the DB,
