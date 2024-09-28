@@ -1,9 +1,10 @@
+import { Program, utils, BN } from "@coral-xyz/anchor"
+import { PublicKey } from "@solana/web3.js"
 import * as anchor from "@coral-xyz/anchor"
-import { Program } from "@coral-xyz/anchor"
-import { truncateAddress } from "lib/string"
 
 import { createPool, log, payoutWinners, placePick } from "lib/test-helpers"
 import { Fanplay } from "target/types/fanplay"
+import { truncateAddress } from "lib/string"
 
 const { LAMPORTS_PER_SOL } = anchor.web3
 
@@ -13,17 +14,34 @@ describe("Fanplay program on Solana", () => {
 
   const program = anchor.workspace.Fanplay as Program<Fanplay>
 
+  const gameId = 5
+  // Convert game_id (u32) to little-endian 4-byte array
+  const gameIdBytes = new Uint8Array(new Uint32Array([gameId]).buffer);
+
   it("creates pool, places 2 picks, pays out 1 winner", async () => {
-    const poolAccount = anchor.web3.Keypair.generate()
-    await createPool(poolAccount, provider)
+    const publicKey = provider.wallet.publicKey
+    const poolId = "pickPoolId1"
+
+    const [poolAcc] = PublicKey.findProgramAddressSync([
+        utils.bytes.utf8.encode(poolId),
+        gameIdBytes,
+        publicKey.toBuffer(),
+      ],
+      program.programId
+    )
+
+    const poolKeyStr = poolAcc.toString()
+    log('Pool account key', poolKeyStr)
+
+    await createPool(poolKeyStr, poolId, gameId, provider)
 
     const user1 = anchor.web3.Keypair.generate()
-    await placePick(poolAccount, user1, 1, 'w:RedDragon', provider)
+    await placePick(poolKeyStr, user1, 1, 'w:RedDragon', provider)
 
     const user2 = anchor.web3.Keypair.generate()
-    await placePick(poolAccount, user2, 2, 'w:BluePhoenix', provider)
+    await placePick(poolKeyStr, user2, 2, 'w:BluePhoenix', provider)
 
-    const updatedPool = await program.account.poolAccount.fetch(poolAccount.publicKey)
+    const updatedPool = await program.account.poolAccount.fetch(poolKeyStr)
     const updatedPoolTotal = updatedPool.poolTotal.toNumber() / LAMPORTS_PER_SOL
     log('\nupdated pool', { ...updatedPool, poolTotal: updatedPoolTotal })
 
@@ -40,7 +58,7 @@ describe("Fanplay program on Solana", () => {
       { userKey: user1.publicKey, amount: payoutAmount },
     ]
 
-    await payoutWinners(rake, payoutList, poolAccount, provider)
+    await payoutWinners(rake, payoutList, poolAcc, provider)
 
     const user1Balance = await provider.connection.getBalance(user1.publicKey)
     const logMsg = `Winner user ${user1.publicKey.toString()} balance`
@@ -48,25 +66,36 @@ describe("Fanplay program on Solana", () => {
   })
 
   it("creates pool, places 5 picks, pays out 2 winners", async () => {
-    const poolAccount = anchor.web3.Keypair.generate()
-    await createPool(poolAccount, provider)
+    const publicKey = provider.wallet.publicKey
+    const poolId = "pickPoolId2"
+
+    const [poolAcc] = PublicKey.findProgramAddressSync([
+        utils.bytes.utf8.encode(poolId),
+        gameIdBytes,
+        publicKey.toBuffer(),
+      ],
+      program.programId
+    )
+
+    const poolAccKeyStr = poolAcc.toString() 
+    await createPool(poolAccKeyStr, poolId, gameId, provider)
 
     const user1 = anchor.web3.Keypair.generate()
-    await placePick(poolAccount, user1, 1, 'w:RedDragon', provider)
+    await placePick(poolAccKeyStr, user1, 1, 'w:RedDragon', provider)
 
     const user2 = anchor.web3.Keypair.generate()
-    await placePick(poolAccount, user2, 6, 'w:BluePhoenix', provider)
+    await placePick(poolAccKeyStr, user2, 6, 'w:BluePhoenix', provider)
 
     const user3 = anchor.web3.Keypair.generate()
-    await placePick(poolAccount, user3, 3, 'w:RedDragon', provider)
+    await placePick(poolAccKeyStr, user3, 3, 'w:RedDragon', provider)
 
     const user4 = anchor.web3.Keypair.generate()
-    await placePick(poolAccount, user4, 5, 'w:YellowPicachu', provider)
+    await placePick(poolAccKeyStr, user4, 5, 'w:YellowPicachu', provider)
 
     const user5 = anchor.web3.Keypair.generate()
-    await placePick(poolAccount, user5, 5, 'w:WhiteUnicorn', provider)
+    await placePick(poolAccKeyStr, user5, 5, 'w:WhiteUnicorn', provider)
 
-    const updatedPool = await program.account.poolAccount.fetch(poolAccount.publicKey)
+    const updatedPool = await program.account.poolAccount.fetch(poolAccKeyStr)
     const updatedPoolTotal = updatedPool.poolTotal.toNumber() / LAMPORTS_PER_SOL
     log('\nupdated pool', { ...updatedPool, poolTotal: updatedPoolTotal })
 
@@ -92,7 +121,7 @@ describe("Fanplay program on Solana", () => {
       { userKey: user3.publicKey, amount: user3Payout },
     ]
 
-    await payoutWinners(rake, payoutList, poolAccount, provider)
+    await payoutWinners(rake, payoutList, poolAcc, provider)
 
     const user1Address = truncateAddress(user1.publicKey.toString())
     const payoutMsg1 = `User ${user1Address} payout`

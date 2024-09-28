@@ -2,13 +2,14 @@ use anchor_lang::solana_program::entrypoint::ProgramResult;
 use anchor_lang::solana_program::rent::Rent;
 use anchor_lang::prelude::*;
 
-declare_id!("CyDt5Z3G4vaD15SXeGmGJc3yqPoej7PpqMP2fjkpGYhn");
+declare_id!("7B7cEiCLPGKFr2XH2cSQ53BSrbpyyoT4efoGsQFLbZo7");
 
 #[program]
 pub mod fanplay {
   use super::*;
 
   pub fn create_pool(ctx: Context<CreatePool>, pool_id: String, game_id: u32) -> ProgramResult {
+    // TODO: check if pool_id has 32 bytes max
     let pool_account = &mut ctx.accounts.pool_account;
     pool_account.admin_key = *ctx.accounts.user.key;
     pool_account.pool_id = pool_id;
@@ -106,9 +107,16 @@ pub mod fanplay {
   }
 }
 
+
 #[derive(Accounts)]
+#[instruction(pool_id: String, game_id: u32)]
 pub struct CreatePool<'info> {
-  #[account(init, payer = user, space = 524)]
+  #[account(
+    init,
+    payer = user,
+    space = 692,
+    seeds=[pool_id.as_bytes(), &game_id.to_le_bytes()[..], user.key().as_ref()], bump
+  )]
   pub pool_account: Account<'info, PoolAccount>,
 
   #[account(mut)]
@@ -124,7 +132,7 @@ pub struct UserPick {
   // In SOL
   pub amount: u64, // 8 bytes
 }
-// Total size = 32 + 4 + 8 = 44 bytes
+// Total size = 32 + (4 + 16) + 8 = 60 bytes
 
 #[account]
 pub struct PoolAccount {
@@ -135,9 +143,11 @@ pub struct PoolAccount {
   pub pool_total: u64, // 8 bytes
   pub pick_count: u32, // 4 bytes
   pub admin_key: Pubkey, // 32 bytes
-  pub picks: Vec<UserPick>, // 8 bytes + size of vector (lets max at 10 bets, 10 * 44 = 440 bytes)
+  pub picks: Vec<UserPick>, // 8 bytes + size of vector (lets max at 10 bets, 10 * 60 + 8 = 608 bytes)
 }
-// Total size = 4 + 32 + 4 + 8 + 4 + 32 + 440 = 524 bytes
+// Total size = (4 + 32) + 4 + 8 + 4 + 32 + 608 = 692 bytes
+// 36 + 16 + 32 = 84 bytes
+// 84 + (8 + 600) = 692 bytes
 
 // QUESTION: how much does it cost to store a pool_account for one month?
 // would it be wise to save a replica of the pool_account on the DB,
