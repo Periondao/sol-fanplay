@@ -4,14 +4,14 @@
 resolution = true
 skip-lint = false
 
-[programs.localnet]
-fanplay = "CyDt5Z3G4vaD15SXeGmGJc3yqPoej7PpqMP2fjkpGYhn"
+[programs.devnet]
+fanplay = "7B7cEiCLPGKFr2XH2cSQ53BSrbpyyoT4efoGsQFLbZo7"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Localnet"
+cluster = "Devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
@@ -19,3 +19,5 @@ test = "yarn run ts-mocha --paths -p ./tsconfig.json -t 1000000 tests/**/*.ts"
 
 [test]
 startup_wait = 10000
+shutdown_wait = 2000
+upgradeable = false

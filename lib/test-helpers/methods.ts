@@ -1,9 +1,10 @@
 import * as anchor from "@coral-xyz/anchor"
 import { Program } from "@coral-xyz/anchor"
+import { PublicKey } from "@solana/web3.js"
 
 import { Fanplay } from "target/types/fanplay"
-import { log } from "lib/test-helpers"
 import { truncateAddress } from "lib/string"
+import { log } from "lib/test-helpers"
 
 const { LAMPORTS_PER_SOL } = anchor.web3
 
@@ -13,23 +14,25 @@ interface Account {
 }
 
 export const createPool = async (
-  poolAccount: Account,
+  accountPubKey: string,
+  poolId: string,
+  gameId: number,
   provider: anchor.AnchorProvider
 ) => {
   const program = anchor.workspace.Fanplay as Program<Fanplay>
 
-  const tx = await program.methods.createPool('randomGameId', 1)
-  .accounts({
-    systemProgram: anchor.web3.SystemProgram.programId,
-    poolAccount: poolAccount.publicKey,
-    user: provider.wallet.publicKey,
-  } as any)
-  .signers([poolAccount])
-  .rpc()
+  const tx = await program.methods.createPool(poolId, gameId)
+    .accounts({
+      systemProgram: anchor.web3.SystemProgram.programId,
+      user: provider.wallet.publicKey,
+      poolAccount: accountPubKey,
+    } as any)
+    // .signers([poolAccount])
+    .rpc()
 
   log("\nPool created, tnx signature", truncateAddress(tx))
 
-  const pool = await program.account.poolAccount.fetch(poolAccount.publicKey)
+  const pool = await program.account.poolAccount.fetch(accountPubKey)
 
   log('pool state', pool)
 
@@ -49,7 +52,7 @@ export const airdropSol = async (user: Account, provider: anchor.AnchorProvider)
 }
 
 export const placePick = async (
-  poolAccount: Account,
+  poolAccPubKey: string,
   user: Account,
   amountNum: number,
   pick: string,
@@ -64,7 +67,7 @@ export const placePick = async (
   await program.methods.placePick(pick, amount)
     .accounts({
       systemProgram: anchor.web3.SystemProgram.programId,
-      poolAccount: poolAccount.publicKey,
+      poolAccount: poolAccPubKey,
       user: user.publicKey,
     } as any)
     .signers([user])
@@ -86,7 +89,7 @@ interface PayoutItem {
 export const payoutWinners = async (
   rake: anchor.BN,
   payoutList: PayoutItem[],
-  poolAccount: Account,
+  poolAccPubKey: PublicKey,
   provider: anchor.AnchorProvider
 ) => {
   const program = anchor.workspace.Fanplay as Program<Fanplay>
@@ -100,12 +103,12 @@ export const payoutWinners = async (
   await program.methods.payout(rake, payoutList)
     .accounts({
       systemProgram: anchor.web3.SystemProgram.programId,
-      poolAccount: poolAccount.publicKey,
+      poolAccount: poolAccPubKey,
       user: provider.wallet.publicKey,
     } as any)
     .remainingAccounts(remainingAccounts)
     .rpc()
 
-  const poolBalance = await provider.connection.getBalance(poolAccount.publicKey)
+  const poolBalance = await provider.connection.getBalance(poolAccPubKey)
   log('\npool balance', poolBalance / LAMPORTS_PER_SOL)
 }
