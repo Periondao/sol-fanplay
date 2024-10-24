@@ -1,10 +1,17 @@
+import {
+  ASSOCIATED_TOKEN_PROGRAM_ID,
+  getAccount,
+  getOrCreateAssociatedTokenAccount,
+  TOKEN_PROGRAM_ID,
+} from "@solana/spl-token"
+
+import { PublicKey } from "@solana/web3.js"
 import * as anchor from "@coral-xyz/anchor"
 import { Program } from "@coral-xyz/anchor"
-import { PublicKey } from "@solana/web3.js"
 
+import { getUsdcMint, log, mintUsdc } from "lib/test-helpers"
 import { Fanplay } from "target/types/fanplay"
 import { truncateAddress } from "lib/string"
-import { log } from "lib/test-helpers"
 
 const { LAMPORTS_PER_SOL } = anchor.web3
 
@@ -13,21 +20,39 @@ interface Account {
   secretKey: Uint8Array
 }
 
+interface PoolAccount {
+  tokenAccount: PublicKey
+}
+
 export const createPool = async (
-  accountPubKey: string,
+  accountPubKey: PublicKey,
   poolId: string,
   gameId: number,
-  provider: anchor.AnchorProvider
 ) => {
   const program = anchor.workspace.Fanplay as Program<Fanplay>
+  const provider = anchor.AnchorProvider.env()
+
+  const { usdcMintAddress, mintAuthority } = await getUsdcMint()
+
+  const poolTokenAccount = await getOrCreateAssociatedTokenAccount(
+    provider.connection,
+    mintAuthority,
+    usdcMintAddress,
+    accountPubKey,
+    true
+  )
 
   const tx = await program.methods.createPool(poolId, gameId)
     .accounts({
-      systemProgram: anchor.web3.SystemProgram.programId,
-      user: provider.wallet.publicKey,
+      poolAdmin: provider.wallet.publicKey,
       poolAccount: accountPubKey,
+      poolTokenAccount: poolTokenAccount.address,
+
+      mintAddress: usdcMintAddress,
+      tokenProgram: TOKEN_PROGRAM_ID,
+      systemProgram: anchor.web3.SystemProgram.programId,
+      associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
     } as any)
-    // .signers([poolAccount])
     .rpc()
 
   log("\nPool created, tnx signature", truncateAddress(tx))
@@ -39,50 +64,61 @@ export const createPool = async (
   return pool
 }
 
-export const airdropSol = async (user: Account, provider: anchor.AnchorProvider) => {
-    // Airdrop some SOL to the new user
-    const sig = await provider.connection.requestAirdrop(
-      user.publicKey,
-      50 * LAMPORTS_PER_SOL
-    )
-    await provider.connection.confirmTransaction(sig)
+export const airdropSol = async (user: Account) => {
+  const provider = anchor.AnchorProvider.env()
 
-    const userAddress = truncateAddress(user.publicKey.toString())
-    log('\nAirdrop of 50 sol made to user:', userAddress)
+  // Airdrop some SOL to the new user
+  const sig = await provider.connection.requestAirdrop(
+    user.publicKey,
+    50 * LAMPORTS_PER_SOL
+  )
+  await provider.connection.confirmTransaction(sig)
+
+  const userAddress = truncateAddress(user.publicKey.toString())
+  log('\nAirdrop of 50 sol made to user:', userAddress)
 }
 
 export const placePick = async (
-  poolAccPubKey: string,
+  poolAccKey: string,
+  poolAcc: PoolAccount,
   user: Account,
   amountNum: number,
   pick: string,
-  provider: anchor.AnchorProvider
 ) => {
-  await airdropSol(user, provider)
+  await airdropSol(user)
+
+  const { userUsdcAccount } = await mintUsdc(user.publicKey)
 
   const program = anchor.workspace.Fanplay as Program<Fanplay>
-  const amount = new anchor.BN(amountNum * LAMPORTS_PER_SOL)
-  log('amounto', amount)
+  const provider = anchor.AnchorProvider.env()
+
+  const amount = new anchor.BN(amountNum * 10 ** 6)
 
   await program.methods.placePick(pick, amount)
     .accounts({
-      systemProgram: anchor.web3.SystemProgram.programId,
-      poolAccount: poolAccPubKey,
+      poolAccount: poolAccKey,
+      tokenAccount: poolAcc.tokenAccount,
+      userAta: userUsdcAccount.address,
       user: user.publicKey,
+      systemProgram: anchor.web3.SystemProgram.programId,
+      tokenProgram: TOKEN_PROGRAM_ID,
     } as any)
     .signers([user])
     .rpc()
 
   const userAddress = truncateAddress(user.publicKey.toString())
-  log(`\nUser ${userAddress} pick placed:`, pick, amountNum, 'SOL')
+  log(`\nUser ${userAddress} pick placed:`, pick, amountNum, 'USDC')
 
   // Fetch new balance for the new user
-  const balance = await provider.connection.getBalance(user.publicKey)
-  log(`User ${userAddress} balance after pick`, balance)
+  const balance = await getAccount(provider.connection, userUsdcAccount.address)
+  log(`User ${userAddress} balance after pick`, Number(balance.amount) / 10 ** 6)
+
+  return { userUsdcAccount }
 }
 
 interface PayoutItem {
-  userKey: anchor.web3.PublicKey
+  userTokenAccount: PublicKey
+  userKey: PublicKey
   amount: anchor.BN
 }
 
@@ -90,25 +126,49 @@ export const payoutWinners = async (
   rake: anchor.BN,
   payoutList: PayoutItem[],
   poolAccPubKey: PublicKey,
-  provider: anchor.AnchorProvider
+  pool: PoolAccount,
+  poolBump: number,
 ) => {
   const program = anchor.workspace.Fanplay as Program<Fanplay>
+  const provider = anchor.AnchorProvider.env()
 
-  const remainingAccounts = payoutList.map(({ userKey }) => ({
-    pubkey: userKey,
+  const remainingAccounts = payoutList.map(({ userTokenAccount }) => ({
+    pubkey: userTokenAccount,
     isSigner: false,
     isWritable: true,
   }))
 
-  await program.methods.payout(rake, payoutList)
+  const { usdcMintAddress, mintAuthority } = await getUsdcMint()
+
+  const adminTokenAccount = await getOrCreateAssociatedTokenAccount(
+    provider.connection,
+    mintAuthority,
+    usdcMintAddress,
+    provider.wallet.publicKey,
+  )
+
+  log('\nAdmin token account', adminTokenAccount.address)
+
+  await program.methods.payout(rake, poolBump, payoutList)
     .accounts({
-      systemProgram: anchor.web3.SystemProgram.programId,
       poolAccount: poolAccPubKey,
-      user: provider.wallet.publicKey,
+      tokenAccount: pool.tokenAccount,
+
+      poolAdmin: provider.wallet.publicKey,
+      adminTokenAccount: adminTokenAccount.address,
+      
+      systemProgram: anchor.web3.SystemProgram.programId,
+      tokenProgram: TOKEN_PROGRAM_ID,
     } as any)
     .remainingAccounts(remainingAccounts)
     .rpc()
 
   const poolBalance = await provider.connection.getBalance(poolAccPubKey)
   log('\npool balance', poolBalance / LAMPORTS_PER_SOL)
+
+  const tokenBalance = await getAccount(provider.connection, pool.tokenAccount)
+  log('\npool token account balance', Number(tokenBalance.amount) / 10 ** 6)
+
+  const adminBalance = await getAccount(provider.connection, adminTokenAccount.address)
+  log('admin token account balance', Number(adminBalance.amount) / 10 ** 6)
 }
