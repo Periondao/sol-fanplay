@@ -1,4 +1,4 @@
-import { Program, utils, BN } from "@coral-xyz/anchor"
+import { Program, utils } from "@coral-xyz/anchor"
 import { PublicKey } from "@solana/web3.js"
 import * as anchor from "@coral-xyz/anchor"
 

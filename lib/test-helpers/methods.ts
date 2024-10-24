@@ -27,7 +27,6 @@ export const createPool = async (
       user: provider.wallet.publicKey,
       poolAccount: accountPubKey,
     } as any)
-    // .signers([poolAccount])
     .rpc()
 
   log("\nPool created, tnx signature", truncateAddress(tx))

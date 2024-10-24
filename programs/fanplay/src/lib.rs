@@ -114,7 +114,7 @@ pub struct CreatePool<'info> {
   #[account(
     init,
     payer = user,
-    space = 692,
+    space = 700,
     seeds=[pool_id.as_bytes(), &game_id.to_le_bytes()[..], user.key().as_ref()], bump
   )]
   pub pool_account: Account<'info, PoolAccount>,
@@ -143,11 +143,13 @@ pub struct PoolAccount {
   pub pool_total: u64, // 8 bytes
   pub pick_count: u32, // 4 bytes
   pub admin_key: Pubkey, // 32 bytes
+  pub end_time: i64, // 8 bytes
   pub picks: Vec<UserPick>, // 8 bytes + size of vector (lets max at 10 bets, 10 * 60 + 8 = 608 bytes)
 }
-// Total size = (4 + 32) + 4 + 8 + 4 + 32 + 608 = 692 bytes
-// 36 + 16 + 32 = 84 bytes
-// 84 + (8 + 600) = 692 bytes
+
+// Total size => (4 + 32) + 4 + 8 + 4 + 32 + 8 + 608 = 700 bytes
+// 36 + 16 + 32 + 8 = 92 bytes
+// 92 + (8 + 600) = 700 bytes
 
 // QUESTION: how much does it cost to store a pool_account for one month?
 // would it be wise to save a replica of the pool_account on the DB,
