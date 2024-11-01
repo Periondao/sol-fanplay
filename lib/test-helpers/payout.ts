@@ -1,5 +1,4 @@
 import {
-  getAccount,
   getOrCreateAssociatedTokenAccount,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token"
@@ -10,11 +9,26 @@ import { Program } from "@coral-xyz/anchor"
 
 import { Fanplay } from "target/types/fanplay"
 
+import { log, logBalances } from "./logger"
 import { PoolAccount } from "./methods"
 import { getUsdcMint } from "./usdc"
-import { log } from "./logger"
+import { truncateAddress } from "lib/string"
 
-const { LAMPORTS_PER_SOL } = anchor.web3
+export const getAdminTokenAccount = async () => {
+  const provider = anchor.AnchorProvider.env()
+
+  const { usdcMintAddress, mintAuthority } = await getUsdcMint()
+
+  const adminTokenAccount = await getOrCreateAssociatedTokenAccount(
+    provider.connection,
+    mintAuthority,
+    usdcMintAddress,
+    provider.wallet.publicKey,
+  )
+
+  return adminTokenAccount
+}
+
 
 interface PayoutItem {
   userTokenAccount: PublicKey
@@ -38,18 +52,9 @@ export const payoutWinners = async (
     isWritable: true,
   }))
 
-  const { usdcMintAddress, mintAuthority } = await getUsdcMint()
+  const adminTokenAccount = await getAdminTokenAccount()
 
-  const adminTokenAccount = await getOrCreateAssociatedTokenAccount(
-    provider.connection,
-    mintAuthority,
-    usdcMintAddress,
-    provider.wallet.publicKey,
-  )
-
-  log('\nAdmin token account', adminTokenAccount.address)
-
-  await program.methods.payout(rake, poolBump, payoutList)
+  const sig = await program.methods.payout(rake, poolBump, payoutList)
     .accounts({
       poolAccount: poolAccPubKey,
       tokenAccount: pool.tokenAccount,
@@ -63,12 +68,7 @@ export const payoutWinners = async (
     .remainingAccounts(remainingAccounts)
     .rpc()
 
-  const poolBalance = await provider.connection.getBalance(poolAccPubKey)
-  log('\npool balance', poolBalance / LAMPORTS_PER_SOL)
+  log('\nPayout complete! Txn signature:', truncateAddress(sig))
 
-  const tokenBalance = await getAccount(provider.connection, pool.tokenAccount)
-  log('\npool token account balance', Number(tokenBalance.amount) / 10 ** 6)
-
-  const adminBalance = await getAccount(provider.connection, adminTokenAccount.address)
-  log('admin token account balance', Number(adminBalance.amount) / 10 ** 6)
+  await logBalances(pool, adminTokenAccount)
 }

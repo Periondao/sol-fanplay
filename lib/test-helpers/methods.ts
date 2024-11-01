@@ -9,13 +9,11 @@ import { PublicKey } from "@solana/web3.js"
 import * as anchor from "@coral-xyz/anchor"
 import { Program } from "@coral-xyz/anchor"
 
-import { getUsdcMint, log, mintUsdc } from "lib/test-helpers"
+import { airdropSol, getUsdcMint, log, mintUsdc } from "lib/test-helpers"
 import { Fanplay } from "target/types/fanplay"
 import { truncateAddress } from "lib/string"
 
-const { LAMPORTS_PER_SOL } = anchor.web3
-
-interface Account {
+export interface Account {
   publicKey: anchor.web3.PublicKey
   secretKey: Uint8Array
 }
@@ -55,27 +53,9 @@ export const createPool = async (
     } as any)
     .rpc()
 
-  log("\nPool created, tnx signature", truncateAddress(tx))
-
   const pool = await program.account.poolAccount.fetch(accountPubKey)
 
-  log('pool state', pool)
-
   return pool
-}
-
-export const airdropSol = async (user: Account) => {
-  const provider = anchor.AnchorProvider.env()
-
-  // Airdrop some SOL to the new user
-  const sig = await provider.connection.requestAirdrop(
-    user.publicKey,
-    50 * LAMPORTS_PER_SOL
-  )
-  await provider.connection.confirmTransaction(sig)
-
-  const userAddress = truncateAddress(user.publicKey.toString())
-  log('\nAirdrop of 50 sol made to user:', userAddress)
 }
 
 export const placePick = async (

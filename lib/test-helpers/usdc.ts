@@ -2,7 +2,7 @@ import { createMint, getOrCreateAssociatedTokenAccount, mintTo } from "@solana/s
 import { PublicKey } from "@solana/web3.js"
 import * as anchor from "@coral-xyz/anchor"
 
-import { airdropSol } from "./methods"
+import { airdropSol } from "./account"
 import { log } from "./logger"
 
 let mintAuthority: anchor.web3.Keypair
@@ -16,7 +16,7 @@ export const getUsdcMint = async () => {
   const provider = anchor.AnchorProvider.env()
 
   mintAuthority = anchor.web3.Keypair.generate()
-  await airdropSol(mintAuthority)
+  await airdropSol(mintAuthority, 'USDC mint authority')
 
   usdcMintVar = await createMint(
     provider.connection,
@@ -50,7 +50,11 @@ export const mintUsdc = async (userKey: PublicKey) => {
     mintAuthority,
     10 * 10 ** 6
   )
-  log('Minted 10 USDC to', userUsdcAccount.address.toString())
+
+  log(
+    'Minted 10 USDC to user ATA (token account)',
+    userUsdcAccount.address.toString()
+  )
 
   return { userUsdcAccount, mintSignature }
 }
