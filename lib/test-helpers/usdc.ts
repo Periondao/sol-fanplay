@@ -48,7 +48,7 @@ export const mintUsdc = async (userKey: PublicKey) => {
     usdcMintAddress,
     userUsdcAccount.address,
     mintAuthority,
-    10 * 10 ** 6
+    10 * LAMPORTS_PER_USDC
   )
 
   log(

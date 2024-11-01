@@ -65,12 +65,12 @@ export const placePick = async (
   amountNum: number,
   pick: string,
 ) => {
+  const program = anchor.workspace.Fanplay as Program<Fanplay>
+  const provider = anchor.AnchorProvider.env()
+
   await airdropSol(user)
 
   const { userUsdcAccount } = await mintUsdc(user.publicKey)
-
-  const program = anchor.workspace.Fanplay as Program<Fanplay>
-  const provider = anchor.AnchorProvider.env()
 
   const amount = new anchor.BN(amountNum * 10 ** 6)
 

@@ -73,12 +73,13 @@ pub fn payout<'info>(
   // To pay out winners, iterate over winner accounts,
   // use its index to find the user_key in the payout_list,
   // and transfer the amount to the winner
-  for (index, winner_acc) in winner_accounts.iter().enumerate() {
+  for (index, winner_token_acc) in winner_accounts.iter().enumerate() {
     let payout = payout_list.get(index).unwrap();
 
-    let pay_result = pay_winner(&ctx, payout, winner_acc, signer_seeds);
+    let pay_result = pay_winner(&ctx, payout, winner_token_acc, signer_seeds);
 
     if let Err(error) = pay_result {
+      // TODO: this is being double logged, fix it
       msg!("Error paying winner: {:?}", error.to_string());
       return Err(ProgramError::InvalidInstructionData);
     }

@@ -9,10 +9,10 @@ import { Program } from "@coral-xyz/anchor"
 
 import { Fanplay } from "target/types/fanplay"
 
+import { truncateAddress } from "lib/string"
 import { log, logBalances } from "./logger"
 import { PoolAccount } from "./methods"
 import { getUsdcMint } from "./usdc"
-import { truncateAddress } from "lib/string"
 
 export const getAdminTokenAccount = async () => {
   const provider = anchor.AnchorProvider.env()

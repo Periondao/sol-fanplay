@@ -8,13 +8,13 @@ use crate::utils::payout_struct::{Payout, PayoutItem};
 pub fn pay_winner<'info>(
   ctx: &Context<'_, '_, '_, 'info, Payout<'info>>,
   payout: &PayoutItem,
-  winner_acc: &AccountInfo<'info>,
+  winner_token_acc: &AccountInfo<'info>,
   signer_seeds: &[&[&[u8]]]
 ) -> ProgramResult
 {
   let pool_token_account = &ctx.accounts.token_account;
   let pool_account = &ctx.accounts.pool_account;
-  let winner_key = winner_acc.key();
+  let winner_key = winner_token_acc.key();
 
   if payout.user_token_account != winner_key {
     msg!("Order of winner accounts does not match order of payout list");
@@ -23,7 +23,7 @@ pub fn pay_winner<'info>(
 
   let cpi_accounts_payout = Transfer {
     from: pool_token_account.to_account_info(),
-    to: winner_acc.to_account_info(),
+    to: winner_token_acc.to_account_info(),
     authority: pool_account.to_account_info(),
   };
 
