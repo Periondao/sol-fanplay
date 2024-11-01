@@ -3,13 +3,20 @@ use anchor_lang::solana_program::entrypoint::ProgramResult;
 
 use anchor_spl::token::{self, Transfer};
 
-use crate::utils::payout_struct::{Payout, PayoutItem};
+use crate::{utils::payout_struct::Payout, PayoutItem};
+use crate::utils::pay_winner::pay_winner;
 
-pub fn payout(ctx: Context<Payout>, rake: u64, pool_bump: u8, payout_list: Vec<PayoutItem>) -> ProgramResult {
+pub fn payout<'info>(
+  ctx: Context<'_, '_, '_, 'info, Payout<'info>>,
+  rake: u64,
+  pool_bump: u8,
+  payout_list: Vec<PayoutItem>
+) -> ProgramResult
+{
   let admin_token_account = &mut ctx.accounts.admin_token_account;
   let pool_token_account = &mut ctx.accounts.token_account;
-  let pool_account = &mut ctx.accounts.pool_account;
-  let winner_accounts = &ctx.remaining_accounts;
+  let pool_account = &ctx.accounts.pool_account;
+  let winner_accounts = ctx.remaining_accounts;
   let pool_admin = &mut ctx.accounts.pool_admin;
 
   if *pool_admin.key != pool_account.admin_key {
@@ -63,30 +70,19 @@ pub fn payout(ctx: Context<Payout>, rake: u64, pool_bump: u8, payout_list: Vec<P
     return Err(ProgramError::InvalidInstructionData);
   }
 
-  // // To pay out winners, iterate over winner accounts,
-  // // use its index to find the user_key in the payout_list,
-  // // and transfer the amount to the winner
-  // for (index, winner_acc) in winner_accounts.iter().enumerate() {
-  //   let payout = payout_list.get(index).unwrap();
-  //   let winner_key = *winner_acc.key;
+  // To pay out winners, iterate over winner accounts,
+  // use its index to find the user_key in the payout_list,
+  // and transfer the amount to the winner
+  for (index, winner_acc) in winner_accounts.iter().enumerate() {
+    let payout = payout_list.get(index).unwrap();
 
-  //   if payout.token_acc_key != winner_key {
-  //     msg!("Order of winner accounts does not match order of payout list");
-  //     return Err(ProgramError::InvalidArgument);
-  //   }
+    let pay_result = pay_winner(&ctx, payout, winner_acc, signer_seeds);
 
-  //   // Pay out winner USDC
-  //   let cpi_accounts_payout = Transfer {
-  //     from: pool_token_account.to_account_info(),
-  //     to: winner_acc.to_account_info(),
-  //     authority: pool_admin.to_account_info(),
-  //   };
-
-  //   let cpi_program = ctx.accounts.token_program.to_account_info();
-  //   let cpi_ctx_payout = CpiContext::new(cpi_program, cpi_accounts_payout);
-
-  //   token::transfer(cpi_ctx_payout, payout.amount);
-  // }
+    if let Err(error) = pay_result {
+      msg!("Error paying winner: {:?}", error.to_string());
+      return Err(ProgramError::InvalidInstructionData);
+    }
+  }
 
   Ok(())
 }

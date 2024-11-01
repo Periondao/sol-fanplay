@@ -35,7 +35,7 @@ describe("Fanplay program - e2e basic", () => {
     )
 
     const poolKeyStr = poolAcc.toString()
-    log('Pool account key', poolKeyStr)
+    log('Created pool SOL account', poolKeyStr)
 
     const pool = await createPool(poolAcc, poolId, gameId)
 
@@ -68,8 +68,8 @@ describe("Fanplay program - e2e basic", () => {
 
     await payoutWinners(rake, payoutList, poolAcc, pool, poolBump)
 
-    const user1Balance = await provider.connection.getBalance(user1.publicKey)
+    const user1Balance = await getAccount(provider.connection, userUsdcAccount.address)
     const logMsg = `Winner user ${user1.publicKey.toString()} balance`
-    log(logMsg, user1Balance / LAMPORTS_PER_USDC)
+    log(logMsg, Number(user1Balance.amount) / LAMPORTS_PER_USDC)
   })
 })

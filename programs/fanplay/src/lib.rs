@@ -26,7 +26,12 @@ pub mod fanplay {
     return mod_place_pick(ctx, pick_spec, amount);
   }
 
-  pub fn payout(ctx: Context<Payout>, rake: u64, pool_bump: u8, payout_list: Vec<PayoutItem>) -> ProgramResult {
+  pub fn payout<'info>(
+    ctx: Context<'_, '_, '_, 'info, Payout<'info>>,
+    rake: u64, pool_bump: u8,
+    payout_list: Vec<PayoutItem>
+  ) -> ProgramResult
+  {
     return mod_payout(ctx, rake, pool_bump, payout_list);
   }
 }

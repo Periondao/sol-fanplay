@@ -48,9 +48,9 @@ export const mintUsdc = async (userKey: PublicKey) => {
     usdcMintAddress,
     userUsdcAccount.address,
     mintAuthority,
-    100 * 10 ** 6
+    10 * 10 ** 6
   )
-  log('Minted 100 USDC to', userUsdcAccount.address.toString())
+  log('Minted 10 USDC to', userUsdcAccount.address.toString())
 
   return { userUsdcAccount, mintSignature }
 }
