@@ -16,12 +16,23 @@ pub fn payout<'info>(
   let admin_token_account = &mut ctx.accounts.admin_token_account;
   let pool_token_account = &mut ctx.accounts.token_account;
   let pool_account = &ctx.accounts.pool_account;
+  let pool_account_info = pool_account.clone().to_account_info();
   let winner_accounts = ctx.remaining_accounts;
   let pool_admin = &mut ctx.accounts.pool_admin;
+  let admin_key = pool_admin.key;
 
-  if *pool_admin.key != pool_account.admin_key {
-    msg!("User is not the admin of the pool");
-    return Err(ProgramError::IncorrectProgramId);
+  let pool_id = pool_account.pool_id.clone();
+  let game_id = &pool_account.game_id.to_le_bytes();
+  let seeds = &[pool_id.as_bytes(), game_id, admin_key.as_ref()];
+
+  let (derived_pool_account_key, _) = Pubkey::find_program_address(
+    seeds,
+    ctx.program_id,
+  );
+
+  if *pool_account_info.key != derived_pool_account_key {
+    msg!("Pool account does not match address derived from admin account param.");
+    return Err(ProgramError::InvalidArgument);
   }
 
   if winner_accounts.len() != payout_list.len() {
@@ -36,8 +47,9 @@ pub fn payout<'info>(
   }
 
   let payouts_and_rake = total_payout + rake;
+  let ata_balance = pool_token_account.amount;
 
-  if payouts_and_rake > pool_account.pool_total {
+  if payouts_and_rake > ata_balance {
     return Err(ProgramError::InsufficientFunds);
   }
 
@@ -51,11 +63,8 @@ pub fn payout<'info>(
   let cpi_program = ctx.accounts.token_program.to_account_info();
 
   // Calculate seed to sign the transaction using pool_account
-  let pool_id = pool_account.pool_id.clone();
-  let game_id = &pool_account.game_id.to_le_bytes();
-  let admin_key = pool_admin.key.as_ref();
-  let seeds = &[pool_id.as_bytes(), game_id, admin_key, &[pool_bump]];
-  let signer_seeds = &[&seeds[..]];
+  let cpi_seeds = &[pool_id.as_bytes(), game_id, admin_key.as_ref(), &[pool_bump]];
+  let signer_seeds = &[&cpi_seeds[..]];
 
   let cpi_ctx = CpiContext::new_with_signer(
     cpi_program,

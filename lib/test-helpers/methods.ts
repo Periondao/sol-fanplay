@@ -53,12 +53,12 @@ export const createPool = async (
 
   const pool = await program.account.poolAccount.fetch(accountPubKey)
 
-  return pool
+  return { pool, poolTokenAccount }
 }
 
 export const placePick = async (
   poolAccKey: string,
-  poolAcc: PoolAccount,
+  tokenAccount: PublicKey,
   user: Account,
   amountNum: number,
   pick: string,
@@ -75,7 +75,7 @@ export const placePick = async (
   await program.methods.placePick(pick, amount)
     .accounts({
       poolAccount: poolAccKey,
-      tokenAccount: poolAcc.tokenAccount,
+      tokenAccount,
       userAta: userUsdcAccount.address,
       user: user.publicKey,
       systemProgram: anchor.web3.SystemProgram.programId,

@@ -5,7 +5,7 @@ resolution = true
 skip-lint = false
 
 [programs.devnet]
-fanplay = "Gwy5zyzMnHTi5CeASEEAHH3LdVtFe3urLZgNoxmMPMyJ"
+fanplay = "BAQ6eHAiHCDxKaRCA771q4vE54hq76UmMvi5fa4Zw981"
 
 [registry]
 url = "https://api.apr.dev"

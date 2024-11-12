@@ -12,7 +12,7 @@ use utils::picks::place_pick as mod_place_pick;
 use utils::payout_struct::*;
 use utils::pay::payout as mod_payout;
 
-declare_id!("Gwy5zyzMnHTi5CeASEEAHH3LdVtFe3urLZgNoxmMPMyJ");
+declare_id!("BAQ6eHAiHCDxKaRCA771q4vE54hq76UmMvi5fa4Zw981");
 
 #[program]
 pub mod fanplay {
@@ -28,7 +28,8 @@ pub mod fanplay {
 
   pub fn payout<'info>(
     ctx: Context<'_, '_, '_, 'info, Payout<'info>>,
-    rake: u64, pool_bump: u8,
+    rake: u64,
+    pool_bump: u8,
     payout_list: Vec<PayoutItem>
   ) -> ProgramResult
   {
