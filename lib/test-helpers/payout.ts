@@ -11,7 +11,6 @@ import { Fanplay } from "target/types/fanplay"
 
 import { truncateAddress } from "lib/string"
 import { log, logBalances } from "./logger"
-import { PoolAccount } from "./methods"
 import { getUsdcMint } from "./usdc"
 
 export const getAdminTokenAccount = async () => {
@@ -40,7 +39,7 @@ export const payoutWinners = async (
   rake: anchor.BN,
   payoutList: PayoutItem[],
   poolAccPubKey: PublicKey,
-  pool: PoolAccount,
+  tokenAccount: PublicKey,
   poolBump: number,
 ) => {
   const program = anchor.workspace.Fanplay as Program<Fanplay>
@@ -57,7 +56,7 @@ export const payoutWinners = async (
   const sig = await program.methods.payout(rake, poolBump, payoutList)
     .accounts({
       poolAccount: poolAccPubKey,
-      tokenAccount: pool.tokenAccount,
+      tokenAccount,
 
       poolAdmin: provider.wallet.publicKey,
       adminTokenAccount: adminTokenAccount.address,
@@ -70,5 +69,5 @@ export const payoutWinners = async (
 
   log('\nPayout complete! Txn signature:', truncateAddress(sig))
 
-  await logBalances(pool, adminTokenAccount)
+  await logBalances(tokenAccount, adminTokenAccount)
 }

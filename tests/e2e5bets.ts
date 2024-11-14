@@ -9,7 +9,6 @@ import {
   createPool,
   placePick,
   log,
-  getPoolAccount,
   getAdminTokenAccount,
   logBalances,
   LAMPORTS_PER_USDC,
@@ -41,28 +40,27 @@ describe("Fanplay program - e2e with more bets", () => {
     )
 
     const poolAccKeyStr = poolAcc.toString() 
-    const pool = await createPool(poolAcc, poolId, gameId)
+    const { poolTokenAccount } = await createPool(poolAcc, poolId, gameId)
 
     const user1 = anchor.web3.Keypair.generate()
-    const { userUsdcAccount } = await placePick(poolAccKeyStr, pool, user1, 1, 'w:ChewsainBolt')
+    const { userUsdcAccount } = await placePick(poolAccKeyStr, poolTokenAccount.address, user1, 1, 'w:ChewsainBolt')
 
     const user2 = anchor.web3.Keypair.generate()
-    await placePick(poolAccKeyStr, pool, user2, 6, 'w:MaxFurstappen')
+    await placePick(poolAccKeyStr, poolTokenAccount.address, user2, 6, 'w:MaxFurstappen')
 
     const user3 = anchor.web3.Keypair.generate()
     const { userUsdcAccount: user3TokenAcc } = await placePick(
-      poolAccKeyStr, pool, user3, 3, 'w:ChewsainBolt'
+      poolAccKeyStr, poolTokenAccount.address, user3, 3, 'w:ChewsainBolt'
     )
 
     const user4 = anchor.web3.Keypair.generate()
-    await placePick(poolAccKeyStr, pool, user4, 5, 'w:HammyHamilton')
+    await placePick(poolAccKeyStr, poolTokenAccount.address, user4, 5, 'w:HammyHamilton')
 
     const user5 = anchor.web3.Keypair.generate()
-    await placePick(poolAccKeyStr, pool, user5, 5, 'w:SpeedDemon')
+    await placePick(poolAccKeyStr, poolTokenAccount.address, user5, 5, 'w:SpeedDemon')
 
-    const updatedPool = await getPoolAccount(poolAccKeyStr)
     const adminTokenAccount = await getAdminTokenAccount()
-    await logBalances(updatedPool, adminTokenAccount)
+    await logBalances(poolTokenAccount.address, adminTokenAccount)
 
     const user1BalanceBefore = await getAccount(provider.connection, userUsdcAccount.address)
     const logMsgBef = `Winner user1 ${truncateAddress(user1.publicKey.toString())} balance`
@@ -72,18 +70,21 @@ describe("Fanplay program - e2e with more bets", () => {
     const logMsg3Bef = `Winner user3 ${truncateAddress(user3.publicKey.toString())} balance`
     log(logMsg3Bef, Number(user3BalanceBefore.amount) / LAMPORTS_PER_USDC)
 
-    const rakeRef = updatedPool.poolTotal
+    const poolTokenBalance = await getAccount(provider.connection, poolTokenAccount.address)
+
+    const balanceBN = new anchor.BN(Number(poolTokenBalance.amount))
+    const rakeRef = balanceBN
       .mul(new anchor.BN(10))
       .div(new anchor.BN(100))
 
-    const payoutAmountRef = updatedPool.poolTotal.sub(rakeRef)
+    const payoutAmountRef = balanceBN.sub(rakeRef)
     const user1Payout = payoutAmountRef.div(new anchor.BN(4))
     const user3Payout = payoutAmountRef
       .div(new anchor.BN(4))
       .mul(new anchor.BN(3))
 
     const userPayouts = user1Payout.add(user3Payout)
-    const rake = updatedPool.poolTotal.sub(userPayouts)
+    const rake = balanceBN.sub(userPayouts)
 
     log('\nWill pay rake:', rake.toNumber() / LAMPORTS_PER_USDC)
     log('Will pay winners:', userPayouts.toNumber() / LAMPORTS_PER_USDC)
@@ -94,7 +95,7 @@ describe("Fanplay program - e2e with more bets", () => {
       { userKey: user3.publicKey, amount: user3Payout, userTokenAccount: user3TokenAcc.address },
     ]
 
-    await payoutWinners(rake, payoutList, poolAcc, pool, poolBump)
+    await payoutWinners(rake, payoutList, poolAcc, poolTokenAccount.address, poolBump)
 
     const user1Balance = await getAccount(provider.connection, userUsdcAccount.address)
     const logMsg = `Winner user ${truncateAddress(user1.publicKey.toString())} balance`

@@ -9,7 +9,6 @@ import {
   placePick,
   log,
   LAMPORTS_PER_USDC,
-  getPoolAccount,
   getAdminTokenAccount,
   logBalances,
 } from "lib/test-helpers"
@@ -39,29 +38,31 @@ describe("Fanplay program - e2e basic", () => {
     )
 
     const poolKeyStr = poolAcc.toString()
-    log('Created pool data account:', poolKeyStr)
+    log('Created pool data account:', poolKeyStr, program.programId.toString())
 
-    const pool = await createPool(poolAcc, poolId, gameId)
+    const { poolTokenAccount } = await createPool(poolAcc, poolId, gameId)
 
     const user1 = anchor.web3.Keypair.generate()
-    const { userUsdcAccount } = await placePick(poolKeyStr, pool, user1, 1, 'w:HammyHamilton')
+    const { userUsdcAccount } = await placePick(poolKeyStr, poolTokenAccount.address, user1, 1, 'w:HammyHamilton')
 
     const user2 = anchor.web3.Keypair.generate()
-    await placePick(poolKeyStr, pool, user2, 2, 'w:MaxFurstappen')
+    await placePick(poolKeyStr, poolTokenAccount.address, user2, 2, 'w:MaxFurstappen')
 
-    const updatedPool = await getPoolAccount(poolKeyStr)
     const adminTokenAccount = await getAdminTokenAccount()
-    await logBalances(updatedPool, adminTokenAccount)
+    await logBalances(poolTokenAccount.address, adminTokenAccount)
 
     const user1BalanceBefore = await getAccount(provider.connection, userUsdcAccount.address)
     const logMsgBef = `Winner user ${truncateAddress(user1.publicKey.toString())} balance`
     log(logMsgBef, Number(user1BalanceBefore.amount) / LAMPORTS_PER_USDC)
 
-    const rake = updatedPool.poolTotal
+    const poolTokenBalance = await getAccount(provider.connection, poolTokenAccount.address)
+
+    const balanceBN = new anchor.BN(Number(poolTokenBalance.amount))
+    const rake = balanceBN
       .mul(new anchor.BN(10))
       .div(new anchor.BN(100))
 
-    const payoutAmount = updatedPool.poolTotal.sub(rake)
+    const payoutAmount = balanceBN.sub(rake)
 
     log('\nWill pay rake:', rake.toNumber() / LAMPORTS_PER_USDC)
     log('Will pay winner:', payoutAmount.toNumber() / LAMPORTS_PER_USDC)
@@ -70,7 +71,7 @@ describe("Fanplay program - e2e basic", () => {
       { userKey: user1.publicKey, userTokenAccount: userUsdcAccount.address, amount: payoutAmount },
     ]
 
-    await payoutWinners(rake, payoutList, poolAcc, pool, poolBump)
+    await payoutWinners(rake, payoutList, poolAcc, poolTokenAccount.address, poolBump)
 
     const user1Balance = await getAccount(provider.connection, userUsdcAccount.address)
     const logMsg = `Winner user ${truncateAddress(user1.publicKey.toString())} balance`
