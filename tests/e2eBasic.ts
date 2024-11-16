@@ -27,7 +27,7 @@ describe("Fanplay program - e2e basic", () => {
   const gameIdBytes = new Uint8Array(new Uint32Array([gameId]).buffer)
 
   it("creates pool, places 2 picks, pays out 1 winner", async () => {
-    const poolId = "pickPoolId1"
+    const poolId = "pickPoolId14896"
 
     const [poolAcc, poolBump] = PublicKey.findProgramAddressSync([
         utils.bytes.utf8.encode(poolId),
