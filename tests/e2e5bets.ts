@@ -29,7 +29,7 @@ describe("Fanplay program - e2e with more bets", () => {
 
   it("creates pool, places 5 picks, pays out 2 winners", async () => {
     const publicKey = provider.wallet.publicKey
-    const poolId = "pickPoolId2"
+    const poolId = "pickPoolId24541"
 
     const [poolAcc, poolBump] = PublicKey.findProgramAddressSync([
         utils.bytes.utf8.encode(poolId),

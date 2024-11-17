@@ -49,6 +49,9 @@ pub fn place_pick(ctx: Context<PlacePick>, pick_spec: String, amount: u64) -> Pr
   pool_account.picks_hash = u32::from_le_bytes(hash_u32);
   pool_account.pick_count += 1;
 
+  let updated_token_acc_balance = ctx.accounts.token_account.amount;
+
+  msg!("New token account balance: {}", updated_token_acc_balance);
   msg!("New hash: {:?}", pool_account.picks_hash);
 
   Ok(())
