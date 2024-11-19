@@ -7,6 +7,7 @@ use anchor_spl::token::Transfer;
 use crate::utils::pick_struct::PlacePick;
 
 pub fn place_pick(ctx: Context<PlacePick>, pick_spec: String, amount: u64) -> ProgramResult {
+  let token_acc_balance = ctx.accounts.token_account.amount;
   let previous_hash = ctx.accounts.pool_account.picks_hash;
 
   // convert previous_hash to a String
@@ -49,9 +50,8 @@ pub fn place_pick(ctx: Context<PlacePick>, pick_spec: String, amount: u64) -> Pr
   pool_account.picks_hash = u32::from_le_bytes(hash_u32);
   pool_account.pick_count += 1;
 
-  let updated_token_acc_balance = ctx.accounts.token_account.amount;
-
-  msg!("New token account balance: {}", updated_token_acc_balance);
+  msg!("Account balance before bet: {}", token_acc_balance);
+  msg!("Previous hash: {:?}", previous_hash);
   msg!("New hash: {:?}", pool_account.picks_hash);
 
   Ok(())
