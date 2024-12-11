@@ -5,6 +5,7 @@ use anchor_lang::solana_program::entrypoint::ProgramResult;
 
 use utils::account_struct::*;
 use utils::accounts::create_pool as mod_create_pool;
+use utils::close_accounts::close_accounts as mod_close_accounts;
 
 use utils::pick_struct::*;
 use utils::picks::place_pick as mod_place_pick;
@@ -34,5 +35,13 @@ pub mod fanplay {
   ) -> ProgramResult
   {
     return mod_payout(ctx, rake, pool_bump, payout_list);
+  }
+
+  pub fn close_accounts(
+    ctx: Context<CloseAccount>,
+    pool_id: String,
+    game_id: u32
+  ) -> ProgramResult {
+    return mod_close_accounts(ctx, pool_id, game_id);
   }
 }

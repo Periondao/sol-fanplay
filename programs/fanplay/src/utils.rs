@@ -1,4 +1,5 @@
 pub mod account_struct;
+pub mod close_accounts;
 pub mod payout_struct;
 pub mod pick_struct;
 pub mod pay_winner;

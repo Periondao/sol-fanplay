@@ -5,6 +5,7 @@ import {
 import { PublicKey } from "@solana/web3.js"
 import * as anchor from "@coral-xyz/anchor"
 import { Program } from "@coral-xyz/anchor"
+import { assert } from "chai"
 
 import { getUsdcMint } from "lib/test-helpers"
 import { Fanplay } from "target/types/fanplay"
@@ -16,6 +17,24 @@ export interface Account {
 
 export interface PoolAccount {
   tokenAccount: PublicKey
+}
+
+export const confirmTxn = async (sign: string) => {
+  const provider = anchor.AnchorProvider.env()
+
+  const block = await provider.connection.getLatestBlockhash()
+
+  const confirmationStrategy = {
+    lastValidBlockHeight: block.lastValidBlockHeight,
+    blockhash: block.blockhash,
+    signature: sign,
+  }
+
+  const confirmation = await provider.connection.confirmTransaction(
+    confirmationStrategy, 'confirmed'
+  )
+
+  assert(confirmation.value.err === null)
 }
 
 export const createPool = async (
