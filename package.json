@@ -4,11 +4,13 @@
     "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
     "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check",
     "testLog": "TEST_LOGS=true anchor test",
-    "printKey": "node ./lib/readArrayKey.js"
+    "printKey": "node ./lib/readArrayKey.js",
+    "convertKey": "node ./lib/base58ToArrayKey.js"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.30.1",
     "@solana/spl-token": "^0.4.9",
+    "blakejs": "^1.2.1",
     "bs58": "^6.0.0"
   },
   "devDependencies": {

@@ -6,6 +6,7 @@ import {
 import { PublicKey } from "@solana/web3.js"
 import * as anchor from "@coral-xyz/anchor"
 import { Program } from "@coral-xyz/anchor"
+import { assert } from "chai"
 
 import { airdropSol, log, mintUsdc } from "lib/test-helpers"
 import { Fanplay } from "target/types/fanplay"
@@ -55,7 +56,21 @@ export const placePick = async (
     poolAccKey, tokenAccount, user, amountNum, pick
   )
 
-  await pickFn.rpc()
+  const sig = await pickFn.rpc()
+
+  const block = await provider.connection.getLatestBlockhash()
+
+  const confirmationStrategy = {
+    lastValidBlockHeight: block.lastValidBlockHeight,
+    blockhash: block.blockhash,
+    signature: sig,
+  }
+
+  const confirmation = await provider.connection.confirmTransaction(
+    confirmationStrategy, 'confirmed'
+  )
+
+  assert(confirmation.value.err === null)
 
   const userAddress = truncateAddress(user.publicKey.toString())
   log(`\nUser ${userAddress} pick placed:`, pick, amountNum, 'USDC')
@@ -64,5 +79,5 @@ export const placePick = async (
   const balance = await getAccount(provider.connection, userUsdcAccount.address)
   log(`User ${userAddress} balance after pick`, Number(balance.amount) / 10 ** 6)
 
-  return { userUsdcAccount }
+  return { userUsdcAccount, sig }
 }

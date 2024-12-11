@@ -2,6 +2,7 @@ import { Program, utils } from "@coral-xyz/anchor"
 import { getAccount } from "@solana/spl-token"
 import { PublicKey } from "@solana/web3.js"
 import * as anchor from "@coral-xyz/anchor"
+import { assert } from "chai"
 
 import {
   payoutWinners,
@@ -13,6 +14,7 @@ import {
   logBalances,
 } from "lib/test-helpers"
 
+import { getBetSpecsHash } from "lib/test-helpers"
 import { Fanplay } from "target/types/fanplay"
 import { truncateAddress } from "lib/string"
 
@@ -42,11 +44,13 @@ describe("Fanplay program - e2e basic", () => {
 
     const { poolTokenAccount } = await createPool(poolAcc, poolId, gameId)
 
+    const user1BetSpec = 'w:HammyHamilton'
     const user1 = anchor.web3.Keypair.generate()
-    const { userUsdcAccount } = await placePick(poolKeyStr, poolTokenAccount.address, user1, 1, 'w:HammyHamilton')
+    const { userUsdcAccount, sig } = await placePick(poolKeyStr, poolTokenAccount.address, user1, 1, user1BetSpec)
 
+    const user2BetSpec = 'w:MaxFurstappen'
     const user2 = anchor.web3.Keypair.generate()
-    await placePick(poolKeyStr, poolTokenAccount.address, user2, 2, 'w:MaxFurstappen')
+    const { sig: sig2 } = await placePick(poolKeyStr, poolTokenAccount.address, user2, 2, user2BetSpec)
 
     const adminTokenAccount = await getAdminTokenAccount()
     await logBalances(poolTokenAccount.address, adminTokenAccount)
@@ -54,6 +58,54 @@ describe("Fanplay program - e2e basic", () => {
     const user1BalanceBefore = await getAccount(provider.connection, userUsdcAccount.address)
     const logMsgBef = `Winner user ${truncateAddress(user1.publicKey.toString())} balance`
     log(logMsgBef, Number(user1BalanceBefore.amount) / LAMPORTS_PER_USDC)
+
+    const signatures = [
+      [sig, user1BetSpec, '1'],
+      [sig2, user2BetSpec, '2'],
+    ]
+
+    await Promise.all(signatures.map(async ([sig, betSpecStr, amount]) => {
+      const txn = await provider.connection.getParsedTransaction(sig, {
+        maxSupportedTransactionVersion: 0,
+        commitment: 'confirmed',
+      })
+
+      let newPicksTotal = ''
+      let previousHash = ''
+      let newHash = ''
+    
+      const balanceLogTxt = 'Account balance before bet:'
+    
+      txn?.meta?.logMessages?.forEach(logMessage => {
+        if (logMessage.includes('New hash')) {
+          const split = logMessage.split('New hash: ').pop()
+          if (split) newHash = split
+        }
+    
+        if (logMessage.includes(balanceLogTxt)) {
+          const split = logMessage.split(balanceLogTxt).pop()
+          if (split) newPicksTotal = split.trim()
+        }
+    
+        if (logMessage.includes('Previous hash:')) {
+          const split = logMessage.split('Previous hash: ').pop()
+          if (split) previousHash = split
+        }
+
+        if (logMessage.includes('New input string:')) {
+          console.log('New input string:', logMessage)
+        }
+      })
+
+      const isHashOk = getBetSpecsHash(
+        +previousHash,
+        newHash,
+        betSpecStr,
+        +amount,
+      )
+
+      assert.isTrue(isHashOk, 'Bet hash is not correct')
+    }))
 
     const poolTokenBalance = await getAccount(provider.connection, poolTokenAccount.address)
 
