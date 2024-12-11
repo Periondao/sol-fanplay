@@ -1,4 +1,4 @@
-import { getAccount } from "@solana/spl-token"
+import { getAccount, TOKEN_PROGRAM_ID } from "@solana/spl-token"
 import { PublicKey } from "@solana/web3.js"
 import * as anchor from "@coral-xyz/anchor"
 import { Program } from "@coral-xyz/anchor"
@@ -33,6 +33,7 @@ export const closeAccounts = async (
   tokenAccount: PublicKey,
   poolId: string,
   gameId: number,
+  poolBump: number
 ) => {
   const program = anchor.workspace.Fanplay as Program<Fanplay>
   const provider = anchor.AnchorProvider.env()
@@ -48,10 +49,11 @@ export const closeAccounts = async (
   const tokenAccInfoBefore = await provider.connection.getAccountInfo(tokenAccount)
   log('Token acc lamports before:', tokenAccInfoBefore.lamports)
 
-  const tx = await program.methods.closeAccounts(poolId, gameId)
+  const tx = await program.methods.closeAccounts(poolId, gameId, poolBump)
     .accounts({
       systemProgram: anchor.web3.SystemProgram.programId,
       poolAdmin: provider.wallet.publicKey,
+      tokenProgram: TOKEN_PROGRAM_ID,
       tokenAccount,
       poolAccount,
     } as any)

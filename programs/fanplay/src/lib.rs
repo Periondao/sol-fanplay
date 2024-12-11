@@ -40,8 +40,9 @@ pub mod fanplay {
   pub fn close_accounts(
     ctx: Context<CloseAccount>,
     pool_id: String,
-    game_id: u32
+    game_id: u32,
+    pool_bump: u8
   ) -> ProgramResult {
-    return mod_close_accounts(ctx, pool_id, game_id);
+    return mod_close_accounts(ctx, pool_id, game_id, pool_bump);
   }
 }

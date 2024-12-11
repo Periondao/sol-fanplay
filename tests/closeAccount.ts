@@ -66,7 +66,12 @@ describe("Fanplay program - e2e closeAccounts", () => {
       .mul(new anchor.BN(10))
       .div(new anchor.BN(100))
 
-    const payoutAmount = balanceBN.sub(rake)
+    // Subtract extra 5% just to simulate balance remaning in token acc after closing
+    const extra5 = balanceBN
+      .mul(new anchor.BN(5))
+      .div(new anchor.BN(100))
+
+    const payoutAmount = balanceBN.sub(rake).sub(extra5)
 
     const payoutList = [
       { userKey: user1.publicKey, userTokenAccount: userUsdcAccount.address, amount: payoutAmount },
@@ -74,6 +79,6 @@ describe("Fanplay program - e2e closeAccounts", () => {
 
     await payoutWinners(rake, payoutList, poolAcc, poolTokenAccount.address, poolBump)
 
-    await closeAccounts(poolAcc, poolTokenAccount.address, poolId, gameId)
+    await closeAccounts(poolAcc, poolTokenAccount.address, poolId, gameId, poolBump)
   })
 })

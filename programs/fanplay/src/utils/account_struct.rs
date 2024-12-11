@@ -1,4 +1,4 @@
-use anchor_spl::token::TokenAccount;
+use anchor_spl::token::{Token, TokenAccount};
 use anchor_lang::prelude::*;
 
 #[account]
@@ -48,4 +48,5 @@ pub struct CloseAccount<'info> {
   pub pool_admin: Signer<'info>,
 
   pub system_program: Program<'info, System>,
+  pub token_program: Program<'info, Token>,
 }
