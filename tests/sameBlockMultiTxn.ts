@@ -79,10 +79,15 @@ describe("Fanplay program - same block multi txn", () => {
 
     txns.forEach(txn => {
       const balanceAndHashLog = txn.meta.logMessages.filter(
-        msg => msg.includes('account balance:') || msg.includes('New hash:')
+        msg => {
+          const ph = msg.includes('Previous hash')
+          const nh = msg.includes('New hash')
+          const ab = msg.includes('Account balance')
+          return ph || nh || ab
+        }
       )
 
-      assert(balanceAndHashLog.length === 2, 'Expected 2 log messages')
+      assert(balanceAndHashLog.length === 3, 'Expected 3 log messages')
     })
   })
 })

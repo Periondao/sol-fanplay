@@ -12,7 +12,7 @@ use utils::picks::place_pick as mod_place_pick;
 use utils::payout_struct::*;
 use utils::pay::payout as mod_payout;
 
-declare_id!("BAQ6eHAiHCDxKaRCA771q4vE54hq76UmMvi5fa4Zw981");
+declare_id!("iLEPWontSkuaCDeg8psrxB3mVHAA39fWWRtinSJcrtJ");
 
 #[program]
 pub mod fanplay {

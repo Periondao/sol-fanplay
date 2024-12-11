@@ -1,6 +1,5 @@
 import {
   getOrCreateAssociatedTokenAccount,
-  TOKEN_PROGRAM_ID,
 } from "@solana/spl-token"
 
 import { PublicKey } from "@solana/web3.js"
@@ -41,10 +40,6 @@ export const createPool = async (
     .accounts({
       poolAdmin: provider.wallet.publicKey,
       poolAccount: accountPubKey,
-      poolTokenAccount: poolTokenAccount.address,
-
-      mintAddress: usdcMintAddress,
-      tokenProgram: TOKEN_PROGRAM_ID,
       systemProgram: anchor.web3.SystemProgram.programId,
     } as any)
     .rpc()

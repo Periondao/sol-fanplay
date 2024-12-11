@@ -1,3 +1,4 @@
+export * from './getBetSpecsHash'
 export * from './account'
 export * from './methods'
 export * from './payout'
