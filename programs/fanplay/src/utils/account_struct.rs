@@ -47,6 +47,9 @@ pub struct CloseAccount<'info> {
   #[account(mut)]
   pub pool_admin: Signer<'info>,
 
+  #[account(mut)]
+  pub admin_token_account: Account<'info, TokenAccount>,
+
   pub system_program: Program<'info, System>,
   pub token_program: Program<'info, Token>,
 }

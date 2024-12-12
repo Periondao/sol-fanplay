@@ -1,4 +1,4 @@
-import { getAccount, TOKEN_PROGRAM_ID } from "@solana/spl-token"
+import { TOKEN_PROGRAM_ID } from "@solana/spl-token"
 import { PublicKey } from "@solana/web3.js"
 import * as anchor from "@coral-xyz/anchor"
 import { Program } from "@coral-xyz/anchor"
@@ -9,7 +9,7 @@ import { truncateAddress } from "lib/string"
 
 import { getAdminTokenAccount } from "./payout"
 import { Account, confirmTxn } from "./methods"
-import { log, logBalances } from "./logger"
+import { log } from "./logger"
 
 const { LAMPORTS_PER_SOL } = anchor.web3
 
@@ -37,6 +37,7 @@ export const closeAccounts = async (
 ) => {
   const program = anchor.workspace.Fanplay as Program<Fanplay>
   const provider = anchor.AnchorProvider.env()
+  const adminTokenAcc = await getAdminTokenAccount()
 
   const adminBalanceBefore = await provider.connection.getBalance(
     provider.wallet.publicKey
@@ -52,6 +53,7 @@ export const closeAccounts = async (
   const tx = await program.methods.closeAccounts(poolId, gameId, poolBump)
     .accounts({
       systemProgram: anchor.web3.SystemProgram.programId,
+      adminTokenAccount: adminTokenAcc.address,
       poolAdmin: provider.wallet.publicKey,
       tokenProgram: TOKEN_PROGRAM_ID,
       tokenAccount,
@@ -61,15 +63,15 @@ export const closeAccounts = async (
 
   await confirmTxn(tx)
 
-  const tokenAcc = await provider.connection.getAccountInfo(tokenAccount)
-  // assert.isTrue(tokenAcc.lamports === 0, 'Token account lamports are not 0')
+  const tokenAcc = await provider.connection.getBalance(tokenAccount)
+  assert.isTrue(tokenAcc === 0, 'Token account lamports are not 0')
 
   const accBalance = await provider.connection.getBalance(poolAccount)
   assert.isTrue(accBalance === 0, 'Pool account balance is not 0')
 
   log('\nBalances after closing accounts:\n')
   log('Pool account lamports:', accBalance)
-  log('Token acc lamports:', tokenAcc.lamports)
+  log('Token acc lamports:', tokenAcc)
 
   const adminBalance = await provider.connection.getBalance(
     provider.wallet.publicKey

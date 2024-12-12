@@ -27,7 +27,7 @@ describe("Fanplay program - e2e closeAccounts", () => {
   // Convert game_id (u32) to little-endian 4-byte array
   const gameIdBytes = new Uint8Array(new Uint32Array([gameId]).buffer)
 
-  it.only("creates pool, places picks, pays winner, closes accounts", async () => {
+  it("creates pool, places picks, pays winner, closes accounts", async () => {
     const poolId = "pickPoolId84948"
 
     const [poolAcc, poolBump] = PublicKey.findProgramAddressSync([
