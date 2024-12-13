@@ -1,3 +1,4 @@
+use anchor_spl::token::{Token, TokenAccount};
 use anchor_lang::prelude::*;
 
 #[account]
@@ -27,4 +28,28 @@ pub struct CreatePool<'info> {
   pub pool_account: Account<'info, PoolAccount>,
 
   pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+#[instruction(pool_id: String, game_id: u32)]
+pub struct CloseAccount<'info> {
+  #[account(
+    mut,
+    close = pool_admin,
+    seeds = [pool_id.as_bytes(), &game_id.to_le_bytes()[..], pool_admin.key().as_ref()],
+    bump
+  )]
+  pub pool_account: Account<'info, PoolAccount>,
+
+  #[account(mut)]
+  pub token_account: Account<'info, TokenAccount>,
+
+  #[account(mut)]
+  pub pool_admin: Signer<'info>,
+
+  #[account(mut)]
+  pub admin_token_account: Account<'info, TokenAccount>,
+
+  pub system_program: Program<'info, System>,
+  pub token_program: Program<'info, Token>,
 }
