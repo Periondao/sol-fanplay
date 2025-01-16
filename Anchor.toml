@@ -5,13 +5,13 @@ resolution = true
 skip-lint = false
 
 [programs.devnet]
-fanplay = "iLEPWontSkuaCDeg8psrxB3mVHAA39fWWRtinSJcrtJ"
+fanplay = "J1pLyfJHnRkvmhSi7wL4MteRm8ftt2djXt24CxgsNeoH"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Localnet"
+cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
